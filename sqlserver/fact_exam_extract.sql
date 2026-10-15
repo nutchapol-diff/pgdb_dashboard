@@ -1,0 +1,25 @@
+-- Keyset page: size, last order (twice), last exam, fixed maximum order.
+-- Repeat pages through the entire history; these are key bounds, not date filters.
+SELECT TOP (?) o.ORDER_START_TIME, d.ORDER_ID, d.EXAM_ID, d.MODALITY_ID,
+       CASE WHEN h.EMP_ID IS NOT NULL THEN h.EMP_ID END AS RADIOLOGIST_ID,
+       d.PRIORITY, d.STATUS, r.RESULT_STATUS,
+       d.EXAM_DT, o.ARRIVAL_ON, d.IMAGE_CAPTURED_ON, d.QA_ON,
+       r.FIRSTFINALIZED_ON, r.FINALIZED_ON, r.RELEASED_ON,
+       COALESCE(t.take_count, 0),
+       d.LAST_MODIFIED_ON,
+       CASE d.IS_DELETED WHEN 'Y' THEN 'true' WHEN 'N' THEN 'false' END AS IS_DELETED
+FROM dbo.RIS_ORDERDTL d WITH (NOLOCK)
+JOIN dbo.RIS_ORDER o WITH (NOLOCK) ON o.ORDER_ID = d.ORDER_ID
+LEFT JOIN dbo.RIS_EXAMRESULT r WITH (NOLOCK)
+  ON r.ACCESSION_NO = d.ACCESSION_NO
+LEFT JOIN dbo.HR_EMP h WITH (NOLOCK)
+  ON h.EMP_ID = r.FINALIZED_BY AND h.IS_RADIOLOGIST = 'Y'
+OUTER APPLY (
+  SELECT COUNT_BIG(*) AS take_count
+  FROM dbo.RIS_TECHWORKS tw WITH (NOLOCK)
+  WHERE tw.ACCESSION_NO = d.ACCESSION_NO
+) t
+WHERE d.ORDER_ID >= ? AND (d.ORDER_ID > ? OR d.EXAM_ID > ?)
+  AND d.ORDER_ID <= ?
+ORDER BY d.ORDER_ID, d.EXAM_ID
+OPTION (RECOMPILE);

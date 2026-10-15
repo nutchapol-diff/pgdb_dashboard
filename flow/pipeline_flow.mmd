@@ -1,0 +1,21 @@
+flowchart LR
+    A[SQL Server<br/>10.10.12.97 / RIS_CU<br/>dbo source tables] --> B[Source extracts<br/>sqlserver/*.sql]
+    B --> C[Python loaders<br/>python/loaders/*.py]
+    C --> D[PostgreSQL staging<br/>COPY / parameterized inserts]
+    D --> E[Dimensions and facts<br/>postgres/schema/*.sql]
+    E --> F[Supplementary marts<br/>AI, HL7, stroke, capture, cancellation]
+    F --> G[Dashboard queries<br/>postgres/dashboard/*.sql]
+    G --> H[Streamlit<br/>dashboard/streamlit_app.py]
+    E -. inspect, explain, maintain .-> P[pgAdmin<br/>admin/review client]
+    F -. inspect, explain, maintain .-> P
+    H -. reads target DB .-> E
+    H -. reads target DB .-> F
+
+    classDef source fill:#fff3cd,stroke:#a66b00,color:#111;
+    classDef code fill:#dbeafe,stroke:#1d4ed8,color:#111;
+    classDef target fill:#dcfce7,stroke:#15803d,color:#111;
+    classDef client fill:#f3e8ff,stroke:#7e22ce,color:#111;
+    class A,B source;
+    class C,D,G,H code;
+    class E,F target;
+    class P client;

@@ -1,0 +1,23 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements-streamlit.txt .
+RUN pip install --no-cache-dir -r requirements-streamlit.txt
+
+COPY streamlit_app.py .
+COPY data_explorer.py .
+COPY reconciliation.py .
+COPY volume.py .
+COPY tat_distribution.py .
+COPY process_comparisons.py .
+COPY stroke.py .
+COPY capture_workflow.py .
+COPY population.py .
+COPY investigations.py .
+COPY widget_guide.html .
+COPY sql/ ./sql/
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "streamlit_app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--browser.gatherUsageStats=false"]

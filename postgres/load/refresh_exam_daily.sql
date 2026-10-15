@@ -1,0 +1,1 @@
+REFRESH MATERIALIZED VIEW mart.exam_daily;

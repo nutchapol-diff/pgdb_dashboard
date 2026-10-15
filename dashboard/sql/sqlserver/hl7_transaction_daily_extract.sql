@@ -1,0 +1,22 @@
+WITH page AS (
+    SELECT TOP (?) LOG_NO, TRANS_TIMESTAMP, ACK_TIMESTAMP, MSG_TYPE, TRANS_TYPE, TRANS_WITH
+    FROM dbo.RIS_HL7TRANSACTIONLOG
+    WHERE LOG_NO > ? AND LOG_NO <= ? ORDER BY LOG_NO
+), timing AS (
+    SELECT *, CASE WHEN ACK_TIMESTAMP >= TRANS_TIMESTAMP
+                   THEN DATEDIFF_BIG(MILLISECOND, TRANS_TIMESTAMP, ACK_TIMESTAMP) END AS delay_ms
+    FROM page
+)
+SELECT CAST(TRANS_TIMESTAMP AS date) AS event_day, MSG_TYPE, TRANS_TYPE, TRANS_WITH,
+       COUNT_BIG(*) AS event_count, COUNT_BIG(TRANS_TIMESTAMP) AS sent_count,
+       COUNT_BIG(ACK_TIMESTAMP) AS ack_count, COUNT_BIG(delay_ms) AS valid_delay_count,
+       SUM(CAST(CASE WHEN ACK_TIMESTAMP < TRANS_TIMESTAMP THEN 1 ELSE 0 END AS bigint)) AS negative_delay_count,
+       COALESCE(SUM(CAST(delay_ms AS decimal(38,0))), 0) AS delay_ms_sum,
+       SUM(CAST(CASE WHEN delay_ms <= 1000 THEN 1 ELSE 0 END AS bigint)) AS delay_le_1s,
+       SUM(CAST(CASE WHEN delay_ms > 1000 AND delay_ms <= 5000 THEN 1 ELSE 0 END AS bigint)) AS delay_1_5s,
+       SUM(CAST(CASE WHEN delay_ms > 5000 AND delay_ms <= 30000 THEN 1 ELSE 0 END AS bigint)) AS delay_5_30s,
+       SUM(CAST(CASE WHEN delay_ms > 30000 THEN 1 ELSE 0 END AS bigint)) AS delay_gt_30s,
+       MAX(LOG_NO) AS page_key
+FROM timing
+GROUP BY CAST(TRANS_TIMESTAMP AS date), MSG_TYPE, TRANS_TYPE, TRANS_WITH
+OPTION (RECOMPILE);
